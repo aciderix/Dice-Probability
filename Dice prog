@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Probabilité de lancer de dés</title>
+</head>
+<body>
+  <h1>Probabilité de lancer de dés</h1>
+
+  <!-- Formulaire pour saisir le résultat d'un lancer -->
+  <form id="roll-form">
+    <label for="roll">Résultat :</label>
+    <input type="number" id="roll" min="1" max="6" value="1">
+    <button type="submit">Ajouter</button>
+    <button type="button" id="start-stop-button">Start</button>
+  </form>
+
+  <!-- Zone d'affichage de l'historique des lancers -->
+  <table id="history">
+    <thead>
+      <tr>
+        <th>Numéro</th>
+        <th>Probabilité</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Zone d'affichage du numéro qui a le plus de chances de sortir au prochain lancer -->
+  <p>Numéro le plus probable : <span id="most-probable-number"></span></p>
+
+  <!-- Chargement de la bibliothèque mathématique Math.js -->
+  <script src="https://unpkg.com/mathjs@11.5.0/lib/browser/math.js"></script>
+
+  <!-- Code JavaScript pour traiter le formulaire et afficher l'historique et les probabilités -->
+  <script>
+    // Récupère le formulaire et la table d'historique
+    const form = document.getElementById('roll-form');
+    const historyTable = document.getElementById('history').tBodies[0];
+
+    // Liste des tirages précédents
+    const previousRolls = [];
+
+    // État de la simulation (true = en cours, false = arrêtée)
+    let simulationRunning = false;
+
+    // Intervalle de la simulation
+    let simulationInterval;
+
+    // Fonction appelée lorsque le formulaire est soumis
+    function addRoll(event) {
+      // Empêche l'envoi du formulaire
+      event.preventDefault();
+
+      // Récupère le numéro saisi par l'utilisateur
+      const roll = parseInt(document.getElementById('roll').value, 10);
+
+      // Ajoute le numéro à la liste des tirages précédents
+      previousRolls.push(roll);
+
+      // Calcule les probabilités de chaque numéro
+      const probabilities = calculateProbabilities();
+
+       // Affiche l'historique des lancers et les probabilités dans la table
+      historyTable.innerHTML = '';
+      for (const [number, probability] of probabilities.entries()) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${number}</td><td>${math.format(probability, {precision: 3})}</td>`;
+        historyTable.appendChild(row);
+      }
+
+      // Affiche le numéro qui a le plus de chances de sortir au prochain lancer
+      document.getElementById('most-probable-number').textContent = getMostProbableNumber();
+    }
+
+    // Calcule les probabilités de chaque numéro
+    function calculateProbabilities() {
+      // Si aucun tirage n'a été effectué, tous les numéros ont une probabilité égale à 1/6
+      if (previousRolls.length === 0) {
+        return new Map([[1, 1/6], [2, 1/6], [3, 1/6], [4, 1/6], [5, 1/6], [6, 1/6]]);
+      }
+
+      // Compte le nombre de fois où chaque numéro a été tiré dans l'historique
+      const numberCounts = new Map([[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0]]);
+      for (const roll of previousRolls) {
+        numberCounts.set(roll, numberCounts.get(roll) + 1);
+      }
+
+      // Calcule les probabilités en fonction du nombre de tirages de chaque numéro
+      const probabilities = new Map();
+      for (const [number, count] of numberCounts.entries()) {
+        probabilities.set(number, count / previousRolls.length);
+      }
+      return probabilities;
+    }
+
+    // Récupère le numéro qui a le plus de chances de sortir au prochain lancer
+    function getMostProbableNumber() {
+      // Calcule les probabilités de chaque numéro
+      const probabilities = calculateProbabilities();
+
+      // Récupère le numéro ayant la probabilité la plus élevée
+      let mostProbableNumber = 1;
+      let highestProbability = 0;
+      for (const [number, probability] of probabilities.entries()) {
+        if (probability > highestProbability) {
+          mostProbableNumber = number;
+          highestProbability = probability;
+        }
+      }
+      return mostProbableNumber;
+    }
+
+    // Fonction appelée lorsque le bouton "Start/Stop" est cliqué
+    function toggleSimulation() {
+      // Change l'état de la simulation
+      simulationRunning = !simulationRunning;
+
+      // Change le texte du bouton en fonction de l'état de la simulation
+      const startStopButton = document.getElementById('start-stop-button');
+      startStopButton.textContent = simulationRunning ? 'Stop' : 'Start';
+
+      // Si la simulation est en cours, lance un lancer de dé toutes les secondes
+      if (simulationRunning) {
+        simulationInterval = setInterval(() => {
+          // Génère un numéro aléatoire entre 1 et 6
+          const roll = Math.floor(Math.random() * 6) + 1;
+
+          // Met à jour le formulaire avec ce numéro
+          document.getElementById('roll').value = roll;
+
+          // Soumet le formulaire
+          addRoll(new Event('submit'));
+        }, 1000);
+      } else {
+        // Si la simulation est arrêtée, arrête l'intervalle de lancers de dés
+        clearInterval(simulationInterval);
+      }
+    }
+
+    // Ajoute un gestionnaire d'évènement pour traiter le formulaire
+    form.addEventListener('submit', addRoll);
+
+    // Ajoute un gestionnaire d'évènement pour traiter le bouton "Start/Stop"
+    document.getElementById('start-stop-button').addEventListener('click', toggleSimulation);
+  </script>
+</body>
+</html>
